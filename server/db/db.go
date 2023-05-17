@@ -1,32 +1,42 @@
 package db
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func InitDB() *gorm.DB {
+var Collection *mongo.Collection
+// ConnectDB : This is helper function to connect mongoDB
+// If you want to export your function. You must to start upper case function name. Otherwise you won't see your function when you import that on other class.
+func ConnectDB() *mongo.Collection {
 
-	fmt.Println("Initalising Database...")
-	dataSourceName := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_SSL"),
-	)
 
-	db, err := gorm.Open(postgres.Open(dataSourceName), &gorm.Config{})
+	// Set client options
+
+
+
+	clientOptions := options.Client().ApplyURI("mongodb+srv://amantarar01:"+os.Getenv("MongoPass")+"@cluster0.kf61u4b.mongodb.net/?retryWrites=true&w=majority")
+
+	fmt.Println("clientOptions",clientOptions)
+	// Connect to MongoDB
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	fmt.Println("client",client)
 
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err)
 	}
-	Execute(db)
-	AutoMigrateDatabase(db)
-	return db
 
+	fmt.Println("Connected to MongoDB!")
+
+	// collection := client.Database("go_rest_api").Collection("books")
+
+	collection := client.Database(os.Getenv("Database")).Collection(os.Getenv("Collection"))
+
+	return collection
 }
+

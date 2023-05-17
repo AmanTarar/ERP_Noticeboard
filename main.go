@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"main/server"
 	"main/server/db"
-	"main/server/socket"
+
+	// "main/server/socket"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -17,16 +19,26 @@ import (
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
+		
 	}
+	fmt.Println("env var loaded")
 
-	connection := db.InitDB()
-	db.Transfer(connection)
-	socketServer := socket.SocketInit()
-	defer socketServer.Close()
-	app := server.NewServer(connection)
+	 MongoCollection := db.ConnectDB()
+	db.Collection=MongoCollection
+
+	
+
+	app := server.NewServer()
 	server.ConfigureRoutes(app)
 
 	if err := app.Run(os.Getenv("PORT")); err != nil {
 		log.Print(err)
 	}
 }
+
+
+
+
+
+  
+ 

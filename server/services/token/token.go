@@ -1,25 +1,28 @@
-package provider
+package token
 
 import (
 	"fmt"
-	"main/server/model"
 	"main/server/response"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Claims struct {
-	Id   string `json:"id"`
-	Role string `json:"role"`
+	Id   string `json:"_id"`
+	 
 	jwt.RegisteredClaims
 }
 
 //Generate JWT Token
-func 	GenerateToken(claims model.Claims, context *gin.Context) string {
+func GenerateToken(context *gin.Context) string {
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	claims:=&Claims{Id: primitive.NewObjectID().Hex()}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,claims)
+	
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWTKEY")))
 
@@ -29,10 +32,11 @@ func 	GenerateToken(claims model.Claims, context *gin.Context) string {
 	return tokenString
 }
 
+
 //Decode Token function
 func DecodeToken(tokenString string) (Claims, error) {
 	claims := &Claims{}
-
+	
 	parsedToken, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("error")
