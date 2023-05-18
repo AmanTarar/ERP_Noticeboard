@@ -3,28 +3,24 @@ package server
 import (
 	_ "main/docs"
 	"main/server/handler"
+	"main/server/services/notice"
 
 	"main/server/gateway"
 
-	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func ConfigureRoutes(server *Server) {
-	server.engine.GET("/hello",func(ctx *gin.Context) {
-		ctx.JSON(200,gin.H{
-			"message":"Hello World",
-		})
-	})
+
 
 	server.engine.Use(gateway.CORSMiddleware())
 	server.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 
-	//create notice 
+	 
 
-
+//Notice Routes
 	server.engine.POST("/create-notice",handler.AddNoticeHandler)
 
 	server.engine.GET("/get-notice",handler.GetNoticeHandler)
@@ -39,8 +35,14 @@ func ConfigureRoutes(server *Server) {
 
 
 
-	//TESTING
-	server.engine.POST("/create-token",handler.CreateTOKEN)
-	server.engine.POST("/decode-token",handler.DecodeTOKEN)	
+
+	//testing 
+
+
+	server.engine.GET("/get-notices",notice.GetNoticesFinal)
+	server.engine.GET("/decode-token",handler.DecodeTOKEN)
+
+	
+
 
 }

@@ -64,21 +64,23 @@ func DeleteAllNoticesHandler(context *gin.Context){
 	notice.DeleteAllNotices(context)
 }
 
-func CreateTOKEN(context *gin.Context){
+// func CreateTOKEN(context *gin.Context){
 
-	utils.SetHeader(context)
+// 	utils.SetHeader(context)
 
 	
-	tokenstring:=token.GenerateToken(context)
+// 	tokenstring:=token.GenerateToken(context)
 
-	fmt.Println("tokenstring",tokenstring)
-}
+// 	fmt.Println("tokenstring",tokenstring)
+// }
 
 func DecodeTOKEN(context *gin.Context){
 
 
 	utils.SetHeader(context)
-	tokn:=context.Request.Header.Get("token")
+	// tokn:=context.Request.Header.Get("token")
+	tokn:="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2M2NlNjZiZTkzZTkxMzA2N2QwMjg4YjgiLCJlbWFpbCI6Iml0dWRhZGh3YWwxNzI3QGdtYWlsLmNvbSIsInRpbWUiOjE2ODQ0MDE4ODI3ODUsImlhdCI6MTY4NDQwMTg4Mn0.yLyUnoMCzWLCUlLZdmc1ZYky3jeKcKE7ik5Xc_Q0Cp8"
 	claims,_:=token.DecodeToken(tokn)
 	fmt.Println("claims",claims)
 }
+

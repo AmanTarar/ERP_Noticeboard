@@ -13,6 +13,7 @@ import (
 	"main/server/services/token"
 	"main/server/utils"
 	"net/http"
+	"os"
 	"strings"
 
 	"time"
@@ -22,8 +23,21 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func AddNoticeService(ctx *gin.Context,Input_Notice request.NoticeRequest){
 
+func isAuthorized(role string)bool{
+	authArr := []string{"HR","PA"}
+
+	for _,v :=range authArr{
+
+		if v==role{
+			return true
+			
+		}
+	}
+
+	return false;
+}
+func AddNoticeService(ctx *gin.Context,Input_Notice request.NoticeRequest){
 
 
 
@@ -38,7 +52,7 @@ func AddNoticeService(ctx *gin.Context,Input_Notice request.NoticeRequest){
 
 	//get request to database to get user info
 
-	req,err:=http.NewRequest("GET","https://timedragon.staging.chicmic.co.in/v1/user?_id=63ce887193e913067d03127b",ctx.Request.Body)
+	req,err:=http.NewRequest("GET","https://timedragon.staging.chicmic.co.in/v1/user?_id="+claims.Id,ctx.Request.Body)
 
 	req.Header.Add("authorization",tokn)
 	res, err := http.DefaultClient.Do(req)
@@ -58,11 +72,23 @@ func AddNoticeService(ctx *gin.Context,Input_Notice request.NoticeRequest){
 
 	var userDetails model.UserDetails
 	err=json.Unmarshal(body,&userDetails)
+	fmt.Println("user's team details is :",userDetails)
+
+	
+	if isAuthorized(userDetails.Data.Role_Data.Role){
+		fmt.Println("authorized to add notice")
+	}else{
+		fmt.Println("not authorized to add notice")
+		
+	}
 	if err != nil {
 		fmt.Println("error",err)
 		return
 	}
-	fmt.Println("user's team details is :",userDetails)
+	
+	// n := &model.Notice{
+	// 	Text: ,
+	// }
 
 	notice.Text=Input_Notice.Text
 
@@ -74,12 +100,21 @@ func AddNoticeService(ctx *gin.Context,Input_Notice request.NoticeRequest){
 
 	notice.Created_at=time.Now()
 
-	notice.Creator_name=userDetails.Data.Name
+	notice.Creator_name=userDetails.Data.Name 
+	var teamIds []string
+	for i:=0;i<len(Input_Notice.SendTo);i++{
+		teamIds=append(teamIds, Input_Notice.SendTo[i].Id)
+	}
+
+
+
+	
+	
 
 
 	notice.To_Date,_=time.Parse("02 Jan 2006",Input_Notice.To_Date)
 
-	notice.SendTo=Input_Notice.SendTo
+	// notice.SendTo=Input_Notice.SendTo
 	
 	notice.Notice_id=primitive.NewObjectID().Hex()
 
@@ -100,53 +135,8 @@ func AddNoticeService(ctx *gin.Context,Input_Notice request.NoticeRequest){
 	fmt.Println("result",result)
 	response.ShowResponse("success",int64(utils.HTTP_OK),"successully added notice",result,ctx)
 
-
-	
-
 	
 }
-
-func GetNoticeByTeamId(ctx *gin.Context) {
-	// set header.
-	
-
-	tokn:=ctx.Request.Header.Get("authorization")
-	claims,_:=token.DecodeToken(tokn)
-
-
-
-	var notice model.Notice
-	// we get params with mux.
-	paramID:= ctx.Query("id")
-	
-	fmt.Println("param id",paramID)
-	// string to primitive.ObjectID
-	id, _ := primitive.ObjectIDFromHex(paramID)
-	fmt.Println("id",id)
-
-	// We create filter.
-	// filter := bson.M{"_id": id}
-
-	filter := bson.M{"SendTo": bson.M{"$_id":claims.Id}}
-	
-	err:= db.Collection.FindOne(context.TODO(), filter).Decode(&notice)
-
-	//IF THE teamID of the user who is requesting ,is present inside sendTo object
-
-	
-
-
-
-	if err != nil {
-		fmt.Println("error in db toooo find one")
-		response.ShowResponse("server error",int64(utils.HTTP_INTERNAL_SERVER_ERROR),err.Error(),"",ctx)
-		return
-	}
-
-	response.ShowResponse("success",int64(utils.HTTP_OK),"get notice success",notice,ctx)
-}
-
-
 
 
 
@@ -186,18 +176,116 @@ func GetNotice(ctx *gin.Context) {
 }
 
 
+
+
 func GetNotices(ctx *gin.Context) {
 	
 
+	var userDetails model.UserDetails
+	// we created Notice array
+	var notices []model.Notice
 
-	tokn:=ctx.Request.Header.Get("authorization")
-	claims,_:=token.DecodeToken(tokn)
-	fmt.Println("cliams",claims.Id)
+	tokn:=ctx.Request.Header
+	fmt.Println("header",tokn["Authorization"])
 
-	req,err:=http.NewRequest("GET","https://timedragon.staging.chicmic.co.in/v1/user?_id=63ce887193e913067d03127b",ctx.Request.Body)
+	if tokn["Authorization"]==nil{
+		return
+	}
 
-	req.Header.Add("authorization",tokn)
+	claims,er:=token.DecodeToken(tokn["Authorization"][0])
+	if er!=nil{
+		fmt.Println("token decoding failed",er)
+	}
+	fmt.Println("claims",claims)
+
+	req,err:=http.NewRequest("GET",os.Getenv("GetForUserPath")+claims.Id,ctx.Request.Body)
+
+	req.Header.Add("authorization",tokn["Authorization"][0])
 	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+	fmt.Println("error",err)
+	return
+	}
+	defer res.Body.Close()
+
+	// Read the response body
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("error",err)
+		return
+	}
+	
+
+	
+	err=json.Unmarshal(body,&userDetails)
+	if err != nil {
+		fmt.Println("error",err)
+		return
+	}
+	fmt.Println("user's team details is :",userDetails.Data.Team)
+
+
+
+	filter := bson.M{} //empty filter to get all data
+	
+	cur, err := db.Collection.Find(context.TODO(), filter)
+
+	if err != nil {
+		fmt.Println("error in filter")
+		response.ShowResponse("server error",int64(utils.HTTP_INTERNAL_SERVER_ERROR),err.Error(),"",ctx)
+		return
+	}
+
+
+
+	defer cur.Close(context.TODO())
+
+	for cur.Next(context.TODO()) {
+
+		// create a value into which the single document can be decoded
+		var notice model.Notice
+
+		fmt.Println("inside cursor loop")
+		
+		err := cur.Decode(&notice) 
+		if err != nil {
+			log.Fatal(err)
+		}
+		if notice.To_Date.After(time.Now()){
+			// add item our to array
+			notices = append(notices, notice)
+		}
+
+
+	}
+
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	response.ShowResponse("success",int64(utils.HTTP_OK),"get success",notices,ctx)
+}
+
+
+func GetNoticesFinal(ctx *gin.Context) {
+	
+
+	fmt.Println("inside get notices")
+	// we created Notice array
+	var notices []model.Notice
+	var userDetails model.UserDetails
+	
+	tokn:=ctx.Request.Header
+	claims,er:=token.DecodeToken(tokn["Authorization"][0])
+	if er!=nil{
+		fmt.Println("token decoding failed",er)
+	}
+	fmt.Println("claims",claims.Id)
+
+	req,err:=http.NewRequest("GET",os.Getenv("GetForUserPath")+claims.Id,ctx.Request.Body)
+	
+	req.Header.Add("Authorization",tokn["Authorization"][0])
+	res, err := http.DefaultClient.Do(req) //hit on get route
 	if err != nil {
 	fmt.Println("error",err)
 	return
@@ -212,51 +300,45 @@ func GetNotices(ctx *gin.Context) {
 	}
 	// fmt.Println("resp body",string(body))
 
-	var userDetails model.UserDetails
 	err=json.Unmarshal(body,&userDetails)
 	if err != nil {
 		fmt.Println("error",err)
 		return
 	}
 	fmt.Println("user's team details is :",userDetails.Data.Team)
-	// we created Notice array
-	var notices []model.Notice
+	fmt.Println("role id",userDetails.Data.Role_Data.Id)
+
+	var teamIds []string
+	for i:=0;i<len(userDetails.Data.Team);i++{
+
+		teamIds=append(teamIds,userDetails.Data.Team[i].Id)
+
+	}
+	fmt.Println("team id",teamIds)
+	// filter := bson.M{
+	// 	"sendTo.id":{"$inc":teamIds}}------------------------------>work here
+
+	filter:=bson.M{"sendTo.id":userDetails.Data.Team[0]}
 
 
-	filter := bson.M{"SendTo": bson.M{"_id":"2"}}
-	// filters:=bson.D{"sendTo.id":{"$in":"2"}}
-
-	// bson.M{},  we passed empty filter. So we want to get all data.
-	cur, err := db.Collection.Find(context.TODO(), filter)
+	
+	cur, err := db.Collection.Find(context.TODO(),filter)
 
 	if err != nil {
 		fmt.Println("error in filter")
 		response.ShowResponse("server error",int64(utils.HTTP_INTERNAL_SERVER_ERROR),err.Error(),"",ctx)
 		return
 	}
-
-	var notice model.Notice
-
 	
-	
-	er := cur.Decode(&notice) 
-	if er != nil {
-		log.Fatal(er)
-	}
-
-	fmt.Println("cursor",cur)
 
 
-	/*A defer statement defers the execution of a function until the surrounding function returns.
-	simply, run cur.Close() process but after cur.Next() finished.*/
+
 	defer cur.Close(context.TODO())
 
 	for cur.Next(context.TODO()) {
 
 		// create a value into which the single document can be decoded
 		var notice model.Notice
-
-		fmt.Println("inside cursor loop")
 		
 		err := cur.Decode(&notice) 
 		if err != nil {
@@ -272,6 +354,7 @@ func GetNotices(ctx *gin.Context) {
 	if err := cur.Err(); err != nil {
 		log.Fatal(err)
 	}
+	
 
 	response.ShowResponse("success",int64(utils.HTTP_OK),"get success",notices,ctx)
 }
@@ -355,6 +438,14 @@ func UpdateNotice(ctx *gin.Context,notice_input request.NoticeRequest) {
 	}
 
 	response.ShowResponse("success",int64(utils.HTTP_OK),"Update successful",noticeupdate,ctx)
+
+
+}
+
+func CreatorGetnotices(ctx *gin.Context){
+
+
+
 
 
 }

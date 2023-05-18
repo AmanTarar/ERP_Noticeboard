@@ -10,9 +10,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+
+
 type Claims struct {
 	Id   string `json:"_id"`
-	 
+	Role string	`json:""`
 	jwt.RegisteredClaims
 }
 
@@ -43,6 +45,7 @@ func DecodeToken(tokenString string) (Claims, error) {
 		}
 		return []byte(os.Getenv("JWTKEY")), nil
 	})
+
 
 	if err != nil || !parsedToken.Valid {
 		return *claims, fmt.Errorf("invalid or expired token")

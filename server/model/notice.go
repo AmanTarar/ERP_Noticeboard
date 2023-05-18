@@ -36,8 +36,16 @@ type UserDetails struct{
 			Id string `json:"_id"`
 			Name string `json:"name"`
 		} `json:"teams"`
+		Role_Data struct{
+			Role string `json:"role"`
+			Id string `json:"_id"`
+		} `json:"roleData"`
 	}`json:"data"`
+
+
 }
+
+
 
 
 
