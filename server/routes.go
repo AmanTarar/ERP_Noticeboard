@@ -20,7 +20,7 @@ func ConfigureRoutes(server *Server) {
 
 	 
 
-//Notice Routes
+	//Notice Routes
 	server.engine.POST("/create-notice",handler.AddNoticeHandler)
 
 	server.engine.GET("/get-notice",handler.GetNoticeHandler)
@@ -31,16 +31,18 @@ func ConfigureRoutes(server *Server) {
 
 	server.engine.GET("/get-all-notices",handler.GetNoticesHandler)
 
-	server.engine.DELETE("/delete-all-notices",handler.DeleteAllNoticesHandler)
+	// server.engine.DELETE("/delete-all-notices",handler.DeleteAllNoticesHandler)
 
+	server.engine.GET("/get-notices-history",handler.GetNoticesHistoryHandler)
 
 
 
 	//testing 
 
 
-	server.engine.GET("/get-notices",notice.GetNoticesFinal)
-	server.engine.GET("/decode-token",handler.DecodeTOKEN)
+	server.engine.GET("/get-notices",notice.UserGetNotices)
+	
+
 
 	
 

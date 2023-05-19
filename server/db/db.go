@@ -18,8 +18,6 @@ func ConnectDB() *mongo.Collection {
 
 	// Set client options
 
-
-
 	clientOptions := options.Client().ApplyURI("mongodb+srv://amantarar01:"+os.Getenv("MongoPass")+"@cluster0.kf61u4b.mongodb.net/?retryWrites=true&w=majority")
 
 	fmt.Println("clientOptions",clientOptions)
